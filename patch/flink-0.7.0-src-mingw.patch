@@ -1,0 +1,77 @@
+diff -uN -r flink-0.7.0-incubating/flink-dist/src/main/flink-bin/bin/config.sh flink-0.7.0-incubating-mingw/flink-dist/src/main/flink-bin/bin/config.sh
+--- flink-0.7.0-incubating/flink-dist/src/main/flink-bin/bin/config.sh	Sun Oct 19 02:56:55 2014
++++ flink-0.7.0-incubating-mingw/flink-dist/src/main/flink-bin/bin/config.sh	Mon Jan 19 09:49:27 2015
+@@ -17,6 +17,7 @@
+ # limitations under the License.
+ ################################################################################
+ 
++. `dirname "$0"`/pathfix
+ 
+ # These are used to mangle paths that are passed to java when using 
+ # cygwin. Cygwin paths are like linux paths, i.e. /path/to/somewhere
+@@ -24,8 +25,9 @@
+ # "cygpath" can do the conversion.
+ manglePath() {
+     UNAME=$(uname -s)
+-    if [ "${UNAME:0:6}" == "CYGWIN" ]; then
+-        echo `cygpath -w $1`
++    if [ "${UNAME:0:6}" == "CYGWIN" -o "${UNAME:0:5}" == "MINGW" ]; then
++        #echo `cygpath -w $1`
++        echo `pathfix $1`
+     else
+         echo $1
+     fi
+@@ -34,8 +36,9 @@
+ manglePathList() {
+     UNAME=$(uname -s)
+     # a path list, for example a java classpath
+-    if [ "${UNAME:0:6}" == "CYGWIN" ]; then
+-        echo `cygpath -wp $1`
++    if [ "${UNAME:0:6}" == "CYGWIN" -o "${UNAME:0:5}" == "MINGW" ]; then
++        #echo `cygpath -wp $1`
++        echo `pathfix $1`
+     else
+         echo $1
+     fi
+@@ -196,11 +199,15 @@
+     # extract first part of string (before any whitespace characters)
+     SLAVE=$1
+     # Remove types and possible comments
+-    if [[ "$SLAVE" =~ ^([0-9a-zA-Z/.-]+).*$ ]]; then
++    #if [[ "$SLAVE" =~ ^([0-9a-zA-Z/.-]+).*$ ]]; then
++    echo "$SLAVE" | grep -qE "^([0-9a-zA-Z/.-]+).*$"
++    if [ $? -eq 0 ]; then
+             SLAVE=${BASH_REMATCH[1]}
+     fi
+     # Extract the hostname from the network hierarchy
+-    if [[ "$SLAVE" =~ ^.*/([0-9a-zA-Z.-]+)$ ]]; then
++    #if [[ "$SLAVE" =~ ^.*/([0-9a-zA-Z.-]+)$ ]]; then
++    echo "$SLAVE" | grep -eE "^.*/([0-9a-zA-Z.-]+)$"
++    if [ $? -eq 0 ]; then
+             SLAVE=${BASH_REMATCH[1]}
+     fi
+ 
+diff -uN -r flink-0.7.0-incubating/flink-dist/src/main/flink-bin/bin/pathfix flink-0.7.0-incubating-mingw/flink-dist/src/main/flink-bin/bin/pathfix
+--- flink-0.7.0-incubating/flink-dist/src/main/flink-bin/bin/pathfix	Thu Jan  1 09:00:00 1970
++++ flink-0.7.0-incubating-mingw/flink-dist/src/main/flink-bin/bin/pathfix	Mon Jan 19 09:49:27 2015
+@@ -0,0 +1,5 @@
++
++pathfix() {
++  pf=`echo $1|sed -e 's/^c:/\/c\//;s/:c:/:\/c\//g;s/:/;/g;s/\/c\//c:\\\\/g;s/\//\\\\/g'`
++  echo $pf
++}
+diff -uN -r flink-0.7.0-incubating/flink-dist/src/main/flink-bin/conf/flink-conf.yaml flink-0.7.0-incubating-mingw/flink-dist/src/main/flink-bin/conf/flink-conf.yaml
+--- flink-0.7.0-incubating/flink-dist/src/main/flink-bin/conf/flink-conf.yaml	Sun Oct 19 02:56:55 2014
++++ flink-0.7.0-incubating-mingw/flink-dist/src/main/flink-bin/conf/flink-conf.yaml	Mon Jan 19 09:49:52 2015
+@@ -37,9 +37,9 @@
+ # Web Frontend
+ #==============================================================================
+ 
+-jobmanager.web.port: 8081
++jobmanager.web.port: 9981
+ 
+-webclient.port: 8080
++webclient.port: 9980
+ 
+ #==============================================================================
+ # Advanced
